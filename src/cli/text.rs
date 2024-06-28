@@ -1,7 +1,9 @@
 use core::fmt;
-use std::{path::PathBuf, str::FromStr};
+use std::{fs, path::PathBuf, str::FromStr};
 
 use clap::Parser;
+
+use crate::{process_generate, process_text_sign, process_text_verify, CmdExecutor};
 
 use super::{verify_file, verify_path};
 
@@ -80,4 +82,34 @@ impl fmt::Display for TextSignFormat {
 
 fn parse_format(input: &str) -> anyhow::Result<TextSignFormat, anyhow::Error> {
     input.parse()
+}
+
+impl CmdExecutor for TextSubCommand {
+    async fn execute(&self) -> anyhow::Result<()> {
+        match self {
+            TextSubCommand::Sign(opts) => {
+                let signed = process_text_sign(&opts.input, &opts.key, opts.format)?;
+                println!("{}", signed);
+            }
+            TextSubCommand::Verify(opts) => {
+                let verify = process_text_verify(&opts.input, &opts.key, opts.format, &opts.sig)?;
+                println!("{}", verify);
+            }
+            TextSubCommand::Generate(opts) => {
+                let key = process_generate(opts.format)?;
+                match opts.format {
+                    TextSignFormat::Blake3 => {
+                        let name = opts.output.join("blake3.txt");
+                        fs::write(name, &key[0])?;
+                    }
+                    TextSignFormat::Ed2519 => {
+                        let name = &opts.output;
+                        fs::write(name.join("ed25519.sk"), &key[0])?;
+                        fs::write(name.join("ed25519.pk"), &key[1])?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 }

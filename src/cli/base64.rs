@@ -1,7 +1,10 @@
 use core::fmt;
 use std::str::FromStr;
 
+use anyhow::Ok;
 use clap::Parser;
+
+use crate::{process_decode, process_encode, CmdExecutor};
 
 use super::verify_file;
 
@@ -37,6 +40,23 @@ pub enum Base64Format {
 
 fn parse_base64_format(format: &str) -> anyhow::Result<Base64Format, anyhow::Error> {
     format.parse()
+}
+
+impl CmdExecutor for Base64SubCommand {
+    async fn execute(&self) -> anyhow::Result<()> {
+        match self {
+            Base64SubCommand::Encode(opts) => {
+                let encoded = process_encode(&opts.input, opts.format)?;
+                println!("{}", encoded);
+            }
+            Base64SubCommand::Decode(opts) => {
+                let decoded = process_decode(&opts.input, opts.format)?;
+                //TODO: decoded data might not be string (but for this example, we assume it is)
+                println!("{:?}", String::from_utf8(decoded));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl FromStr for Base64Format {

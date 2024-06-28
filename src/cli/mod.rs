@@ -9,6 +9,8 @@ use csv::CsvOpts;
 use genpass::GenPassOpts;
 use std::path::Path;
 
+use crate::CmdExecutor;
+
 pub use self::{
     base64::{Base64Format, Base64SubCommand},
     csv::OutputFormat,
@@ -43,6 +45,18 @@ fn verify_file(file: &str) -> Result<String, String> {
         Ok(file.into())
     } else {
         Err("File does not exist".into())
+    }
+}
+
+impl CmdExecutor for SubCommand {
+    async fn execute(&self) -> anyhow::Result<()> {
+        match self {
+            SubCommand::Csv(opts) => opts.execute().await,
+            SubCommand::GenPass(opts) => opts.execute().await,
+            SubCommand::Base64(cmd) => cmd.execute().await,
+            SubCommand::Text(cmd) => cmd.execute().await,
+            SubCommand::Http(cmd) => cmd.execute().await,
+        }
     }
 }
 
