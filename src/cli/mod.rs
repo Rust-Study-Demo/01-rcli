@@ -41,18 +41,6 @@ fn verify_file(file: &str) -> Result<String, String> {
     }
 }
 
-// impl CmdExecutor for SubCommand {
-//     async fn execute(&self) -> anyhow::Result<()> {
-//         match self {
-//             SubCommand::Csv(opts) => opts.execute().await,
-//             SubCommand::GenPass(opts) => opts.execute().await,
-//             SubCommand::Base64(cmd) => cmd.execute().await,
-//             SubCommand::Text(cmd) => cmd.execute().await,
-//             SubCommand::Http(cmd) => cmd.execute().await,
-//         }
-//     }
-// }
-
 fn verify_path(path: &str) -> Result<String, &'static str> {
     let p = Path::new(path);
     if p.exists() && p.is_dir() {
