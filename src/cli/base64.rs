@@ -3,12 +3,14 @@ use std::str::FromStr;
 
 use anyhow::Ok;
 use clap::Parser;
+use enum_dispatch::enum_dispatch;
 
 use crate::{process_decode, process_encode, CmdExecutor};
 
 use super::verify_file;
 
 #[derive(Debug, Parser)]
+#[enum_dispatch(CmdExecutor)]
 pub enum Base64SubCommand {
     #[command(name = "encode", about = "encode a string to base64")]
     Encode(Base64EncodeOpts),
@@ -42,19 +44,19 @@ fn parse_base64_format(format: &str) -> anyhow::Result<Base64Format, anyhow::Err
     format.parse()
 }
 
-impl CmdExecutor for Base64SubCommand {
+impl CmdExecutor for Base64DecodeOpts {
     async fn execute(&self) -> anyhow::Result<()> {
-        match self {
-            Base64SubCommand::Encode(opts) => {
-                let encoded = process_encode(&opts.input, opts.format)?;
-                println!("{}", encoded);
-            }
-            Base64SubCommand::Decode(opts) => {
-                let decoded = process_decode(&opts.input, opts.format)?;
-                //TODO: decoded data might not be string (but for this example, we assume it is)
-                println!("{:?}", String::from_utf8(decoded));
-            }
-        }
+        let decoded = process_decode(&self.input, self.format)?;
+        //TODO: decoded data might not be string (but for this example, we assume it is)
+        println!("{:?}", String::from_utf8(decoded));
+        Ok(())
+    }
+}
+
+impl CmdExecutor for Base64EncodeOpts {
+    async fn execute(&self) -> anyhow::Result<()> {
+        let encoded = process_encode(&self.input, self.format)?;
+        println!("{}", encoded);
         Ok(())
     }
 }

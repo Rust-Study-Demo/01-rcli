@@ -2,12 +2,14 @@ use core::fmt;
 use std::{fs, path::PathBuf, str::FromStr};
 
 use clap::Parser;
+use enum_dispatch::enum_dispatch;
 
 use crate::{process_generate, process_text_sign, process_text_verify, CmdExecutor};
 
 use super::{verify_file, verify_path};
 
 #[derive(Debug, Parser)]
+#[enum_dispatch(CmdExecutor)]
 pub enum TextSubCommand {
     #[command(about = "Sign a message with a private/shared key")]
     Verify(TextVerifyOpts),
@@ -84,30 +86,34 @@ fn parse_format(input: &str) -> anyhow::Result<TextSignFormat, anyhow::Error> {
     input.parse()
 }
 
-impl CmdExecutor for TextSubCommand {
+impl CmdExecutor for TextSignOpts {
     async fn execute(&self) -> anyhow::Result<()> {
-        match self {
-            TextSubCommand::Sign(opts) => {
-                let signed = process_text_sign(&opts.input, &opts.key, opts.format)?;
-                println!("{}", signed);
+        let signed = process_text_sign(&self.input, &self.key, self.format)?;
+        println!("{}", signed);
+        Ok(())
+    }
+}
+
+impl CmdExecutor for TextVerifyOpts {
+    async fn execute(&self) -> anyhow::Result<()> {
+        let verify = process_text_verify(&self.input, &self.key, self.format, &self.sig)?;
+        println!("{}", verify);
+        Ok(())
+    }
+}
+
+impl CmdExecutor for TextKeyGenerateOpts {
+    async fn execute(&self) -> anyhow::Result<()> {
+        let key = process_generate(self.format)?;
+        match self.format {
+            TextSignFormat::Blake3 => {
+                let name = self.output.join("blake3.txt");
+                fs::write(name, &key[0])?;
             }
-            TextSubCommand::Verify(opts) => {
-                let verify = process_text_verify(&opts.input, &opts.key, opts.format, &opts.sig)?;
-                println!("{}", verify);
-            }
-            TextSubCommand::Generate(opts) => {
-                let key = process_generate(opts.format)?;
-                match opts.format {
-                    TextSignFormat::Blake3 => {
-                        let name = opts.output.join("blake3.txt");
-                        fs::write(name, &key[0])?;
-                    }
-                    TextSignFormat::Ed2519 => {
-                        let name = &opts.output;
-                        fs::write(name.join("ed25519.sk"), &key[0])?;
-                        fs::write(name.join("ed25519.pk"), &key[1])?;
-                    }
-                }
+            TextSignFormat::Ed2519 => {
+                let name = &self.output;
+                fs::write(name.join("ed25519.sk"), &key[0])?;
+                fs::write(name.join("ed25519.pk"), &key[1])?;
             }
         }
         Ok(())
