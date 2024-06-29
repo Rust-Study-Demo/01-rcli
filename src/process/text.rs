@@ -125,9 +125,14 @@ impl Blake3 {
         Self { key }
     }
 
-    pub fn try_new(key: &[u8]) -> Result<Self> {
-        let key = &key[..32];
-        let key = key.try_into()?;
+    // equal to pub fn try_new<T: AsRef<[u8]>>(key: T) -> Result<Self>
+    // From<T> for U: T->U
+    // AsRef<T> for U: U(ref) -> &T
+    // "a.txt" => &[]
+    // "a.txt".to_string() (String) => &[u8]
+    pub fn try_new(key: impl AsRef<[u8]>) -> Result<Self> {
+        let key = key.as_ref();
+        let key = (&key[..32]).try_into()?;
         let signer = Blake3::new(key);
         Ok(signer)
     }
@@ -163,7 +168,7 @@ impl KeyLoader for Blake3 {
         Self: Sized,
     {
         let key = fs::read(path)?;
-        Self::try_new(&key)
+        Self::try_new(key)
     }
 }
 
